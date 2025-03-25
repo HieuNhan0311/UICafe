@@ -1,185 +1,10 @@
-// import React, {useState, forwardRef, useImperativeHandle} from 'react';
-// import {
-//   View,
-//   Text,
-//   TextInput,
-//   TouchableOpacity,
-//   StyleSheet,
-// } from 'react-native';
-// import BottomSheet from '@gorhom/bottom-sheet';
-// import {useCart, type MenuItem} from '../context/CartContext';
-
-// interface AddToCartSheetProps {
-//   item: MenuItem | null;
-// }
-
-// const AddToCartSheet = forwardRef<BottomSheet, AddToCartSheetProps>(
-//   ({item}, ref) => {
-//     const [quantity, setQuantity] = useState(1);
-//     const [notes, setNotes] = useState('');
-//     const {addToCart} = useCart();
-
-//     // Expose the bottomSheet ref
-//     useImperativeHandle(ref, () => bottomSheetRef.current as BottomSheet);
-
-//     // Create a local ref
-//     const bottomSheetRef = React.useRef<BottomSheet>(null);
-
-//     // Reset form when sheet closes
-//     const handleSheetChanges = (index: number) => {
-//       if (index === -1) {
-//         setQuantity(1);
-//         setNotes('');
-//       }
-//     };
-
-//     const decreaseQuantity = () => {
-//       if (quantity > 1) {
-//         setQuantity(quantity - 1);
-//       }
-//     };
-
-//     const increaseQuantity = () => {
-//       setQuantity(quantity + 1);
-//     };
-
-//     const handleAddToCart = () => {
-//       if (item) {
-//         addToCart(item, quantity, notes);
-//         bottomSheetRef.current?.close();
-//       }
-//     };
-
-//     return (
-//       <BottomSheet
-//         ref={bottomSheetRef}
-//         index={-1}
-//         snapPoints={['50%']}
-//         enablePanDownToClose
-//         onChange={handleSheetChanges}>
-//         <View style={styles.container}>
-//           {item && (
-//             <>
-//               <Text style={styles.title}>{item.name}</Text>
-//               <Text style={styles.price}>{item.price.toLocaleString()} đ</Text>
-
-//               <View style={styles.quantityContainer}>
-//                 <Text style={styles.sectionTitle}>Số lượng:</Text>
-//                 <View style={styles.quantityControl}>
-//                   <TouchableOpacity
-//                     onPress={decreaseQuantity}
-//                     style={styles.quantityButton}>
-//                     <Text style={styles.quantityButtonText}>-</Text>
-//                   </TouchableOpacity>
-//                   <Text style={styles.quantityText}>{quantity}</Text>
-//                   <TouchableOpacity
-//                     onPress={increaseQuantity}
-//                     style={styles.quantityButton}>
-//                     <Text style={styles.quantityButtonText}>+</Text>
-//                   </TouchableOpacity>
-//                 </View>
-//               </View>
-
-//               <View style={styles.notesContainer}>
-//                 <Text style={styles.sectionTitle}>Ghi chú:</Text>
-//                 <TextInput
-//                   style={styles.notesInput}
-//                   placeholder="Thêm ghi chú cho món này..."
-//                   value={notes}
-//                   onChangeText={setNotes}
-//                   multiline
-//                 />
-//               </View>
-
-//               <TouchableOpacity
-//                 style={styles.addButton}
-//                 onPress={handleAddToCart}>
-//                 <Text style={styles.addButtonText}>Thêm vào giỏ hàng</Text>
-//               </TouchableOpacity>
-//             </>
-//           )}
-//         </View>
-//       </BottomSheet>
-//     );
-//   },
-// );
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     padding: 16,
-//   },
-//   title: {
-//     fontSize: 20,
-//     fontWeight: 'bold',
-//     marginBottom: 8,
-//   },
-//   price: {
-//     fontSize: 18,
-//     color: '#007AFF',
-//     marginBottom: 16,
-//   },
-//   sectionTitle: {
-//     fontSize: 16,
-//     fontWeight: 'bold',
-//     marginBottom: 8,
-//   },
-//   quantityContainer: {
-//     marginBottom: 16,
-//   },
-//   quantityControl: {
-//     flexDirection: 'row',
-//     alignItems: 'center',
-//   },
-//   quantityButton: {
-//     width: 36,
-//     height: 36,
-//     backgroundColor: '#f0f0f0',
-//     borderRadius: 18,
-//     justifyContent: 'center',
-//     alignItems: 'center',
-//   },
-//   quantityButtonText: {
-//     fontSize: 18,
-//     fontWeight: 'bold',
-//   },
-//   quantityText: {
-//     fontSize: 18,
-//     fontWeight: 'bold',
-//     marginHorizontal: 16,
-//   },
-//   notesContainer: {
-//     marginBottom: 24,
-//   },
-//   notesInput: {
-//     borderWidth: 1,
-//     borderColor: '#ddd',
-//     borderRadius: 8,
-//     padding: 12,
-//     height: 80,
-//     textAlignVertical: 'top',
-//   },
-//   addButton: {
-//     backgroundColor: '#007AFF',
-//     borderRadius: 8,
-//     padding: 16,
-//     alignItems: 'center',
-//   },
-//   addButtonText: {
-//     color: 'white',
-//     fontSize: 16,
-//     fontWeight: 'bold',
-//   },
-// });
-
-// export default AddToCartSheet;
-'use client';
-
-import React, {
+import {
   useState,
   forwardRef,
   useImperativeHandle,
+  useRef,
   useCallback,
+  useMemo,
 } from 'react';
 import {
   View,
@@ -189,8 +14,13 @@ import {
   StyleSheet,
 } from 'react-native';
 import BottomSheet from '@gorhom/bottom-sheet';
-import {useCart, type MenuItem} from '../context/CartContext';
+import {useCart, type MenuItem} from '../../screens/context/CartContext';
 
+interface AddToCartSheetProps {
+  item: MenuItem | null;
+}
+
+// Định nghĩa kiểu BottomSheetMethods
 interface BottomSheetMethods {
   expand: () => void;
   collapse: () => void;
@@ -200,68 +30,102 @@ interface BottomSheetMethods {
   forceClose: () => void;
 }
 
-interface AddToCartSheetProps {
-  item: MenuItem | null;
-}
-
 const AddToCartSheet = forwardRef<BottomSheetMethods, AddToCartSheetProps>(
   ({item}, ref) => {
     const [quantity, setQuantity] = useState(1);
     const [notes, setNotes] = useState('');
     const {addToCart} = useCart();
+    const bottomSheetRef = useRef<BottomSheet>(null);
 
-    // Tạo snapPoints với giá trị cụ thể
-    const snapPoints = React.useMemo(() => ['50%'], []);
+    // Quan trọng: Đảm bảo snapPoints có ít nhất 2 phần tử
+    // Phần tử đầu tiên là vị trí ẩn, phần tử thứ hai là vị trí hiển thị
+    const snapPoints = useMemo(() => ['1%', '50%'], []);
 
-    // Tạo bottomSheetRef
-    const bottomSheetRef = React.useRef<BottomSheet>(null);
+    useImperativeHandle(ref, () => ({
+      expand: () => {
+        console.log('Expand called, snapping to index 1');
+        try {
+          // Đảm bảo index nằm trong phạm vi của snapPoints
+          if (bottomSheetRef.current) {
+            bottomSheetRef.current.snapToIndex(1);
+          }
+        } catch (error) {
+          console.error('Error expanding bottom sheet:', error);
+        }
+      },
+      collapse: () => {
+        try {
+          bottomSheetRef.current?.snapToIndex(0);
+        } catch (error) {
+          console.error('Error collapsing bottom sheet:', error);
+        }
+      },
+      close: () => {
+        try {
+          bottomSheetRef.current?.close();
+        } catch (error) {
+          console.error('Error closing bottom sheet:', error);
+        }
+      },
+      snapToIndex: (index: number) => {
+        try {
+          // Kiểm tra index có hợp lệ không
+          if (index >= 0 && index < snapPoints.length) {
+            bottomSheetRef.current?.snapToIndex(index);
+          } else {
+            console.warn(
+              `Invalid index: ${index}. Valid range: 0-${
+                snapPoints.length - 1
+              }`,
+            );
+          }
+        } catch (error) {
+          console.error(`Error snapping to index ${index}:`, error);
+        }
+      },
+      snapToPosition: (position: number) =>
+        bottomSheetRef.current?.snapToPosition(position),
+      forceClose: () => bottomSheetRef.current?.forceClose(),
+    }));
 
-    // Expose the bottomSheet ref methods
-    useImperativeHandle(
-      ref,
-      () => bottomSheetRef.current as BottomSheetMethods,
+    const decreaseQuantity = useCallback(
+      () => setQuantity(prev => Math.max(1, prev - 1)),
+      [],
     );
 
-    // Reset form when sheet closes
-    const handleSheetChanges = useCallback((index: number) => {
-      console.log('Sheet index changed:', index);
-      if (index === -1) {
-        setQuantity(1);
-        setNotes('');
-      }
+    const increaseQuantity = useCallback(() => {
+      setQuantity(prev => prev + 1);
     }, []);
 
-    const decreaseQuantity = () => {
-      if (quantity > 1) {
-        setQuantity(quantity - 1);
-      }
-    };
-
-    const increaseQuantity = () => {
-      setQuantity(quantity + 1);
-    };
-
-    const handleAddToCart = () => {
+    const handleAddToCart = useCallback(() => {
       if (item) {
         addToCart(item, quantity, notes);
         bottomSheetRef.current?.close();
       }
-    };
+    }, [item, quantity, notes, addToCart]);
+
+    // Xử lý khi sheet thay đổi
+    const handleSheetChanges = useCallback((index: number) => {
+      console.log('Sheet index changed to:', index);
+    }, []);
 
     return (
       <BottomSheet
         ref={bottomSheetRef}
-        index={-1}
+        index={-1} // Bắt đầu với trạng thái ẩn
         snapPoints={snapPoints}
         enablePanDownToClose
         onChange={handleSheetChanges}
-        handleIndicatorStyle={{width: 50, height: 5, backgroundColor: '#ccc'}}>
+        handleIndicatorStyle={styles.handleIndicator}
+        backgroundStyle={styles.bottomSheetBackground}
+        style={styles.bottomSheet}>
         <View style={styles.container}>
-          {item && (
+          {item ? (
             <>
               <Text style={styles.title}>{item.name}</Text>
               <Text style={styles.price}>{item.price.toLocaleString()} đ</Text>
 
+              {/* Chỉnh số lượng */}
               <View style={styles.quantityContainer}>
                 <Text style={styles.sectionTitle}>Số lượng:</Text>
                 <View style={styles.quantityControl}>
@@ -279,6 +143,7 @@ const AddToCartSheet = forwardRef<BottomSheetMethods, AddToCartSheetProps>(
                 </View>
               </View>
 
+              {/* Ghi chú */}
               <View style={styles.notesContainer}>
                 <Text style={styles.sectionTitle}>Ghi chú:</Text>
                 <TextInput
@@ -290,12 +155,15 @@ const AddToCartSheet = forwardRef<BottomSheetMethods, AddToCartSheetProps>(
                 />
               </View>
 
+              {/* Nút thêm vào giỏ */}
               <TouchableOpacity
                 style={styles.addButton}
                 onPress={handleAddToCart}>
                 <Text style={styles.addButtonText}>Thêm vào giỏ hàng</Text>
               </TouchableOpacity>
             </>
+          ) : (
+            <Text style={styles.emptyText}>Vui lòng chọn một sản phẩm</Text>
           )}
         </View>
       </BottomSheet>
@@ -304,6 +172,21 @@ const AddToCartSheet = forwardRef<BottomSheetMethods, AddToCartSheetProps>(
 );
 
 const styles = StyleSheet.create({
+  bottomSheet: {
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: -4},
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  bottomSheetBackground: {
+    backgroundColor: 'white',
+  },
+  handleIndicator: {
+    width: 50,
+    height: 5,
+    backgroundColor: '#ccc',
+  },
   container: {
     flex: 1,
     padding: 16,
@@ -368,6 +251,12 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  emptyText: {
+    textAlign: 'center',
+    fontSize: 16,
+    color: '#666',
+    marginTop: 20,
   },
 });
 
